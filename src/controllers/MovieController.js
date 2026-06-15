@@ -183,6 +183,7 @@ class MovieController {
         data: data
       });
     } catch (error) {
+      console.log("Error:", error);
       return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to fetch movie details"

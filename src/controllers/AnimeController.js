@@ -98,7 +98,7 @@ class AnimeController {
     try {
       const { id } = req.params;
       const page = req.query.page ? parseInt(req.query.page) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit) : 25;
+      const limit = req.query.limit ? parseInt(req.query.limit) : 10;
       
       if (!id) {
         return res.status(STATUS.BAD_REQUEST).json({
@@ -124,6 +124,7 @@ class AnimeController {
       });
       
     } catch (error) {
+      console.log("Error:", error);
       if (error.response && error.response.status === 404) {
         return res.status(STATUS.NOT_FOUND).json({
           success: false,
@@ -134,6 +135,39 @@ class AnimeController {
       return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: "Failed to fetch episodes"
+      });
+    }
+  }
+
+  async getAnimeEpisodeById(req, res) {
+    try {
+      const { id, episode } = req.params;
+      
+      if (!id || !episode) {
+        return res.status(STATUS.BAD_REQUEST).json({
+          success: false,
+          message: 'Anime ID and episode number are required'
+        });
+      }
+
+      const data = await AnimeModel.getAnimeEpisodeById(id, episode);
+      
+      if (!data.success) {
+        return res.status(STATUS.NOT_FOUND).json({
+          success: false,
+          message: `Episode ${episode} not found for anime ID: ${id}`
+        });
+      }
+
+      return res.status(STATUS.SUCCESS).json({
+        success: true,
+        data: data.data
+      });
+      
+    } catch (error) {
+      return res.status(STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: "Failed to fetch anime episode"
       });
     }
   }

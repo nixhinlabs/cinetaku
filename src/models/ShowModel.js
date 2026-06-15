@@ -253,12 +253,14 @@ class ShowModel {
       const formattedShow = {
         id: data.id,
         title: data.name,
-        overview: data.overview,
+        image: { uri: data.poster_path ? `${TMDB.TMDB_POSTER_BASE_URL}${data.poster_path}` : null },
+        rating: data.vote_average,
+        year: data.first_air_date ? new Date(data.first_air_date).getFullYear() : null,
+        description: data.overview,
+        type: "TV Show",
         backdrop_path: data.backdrop_path ? `${TMDB.TMDB_BACKDROP_BASE_URL}${data.backdrop_path}` : null,
-        poster_path: data.poster_path ? `${TMDB.TMDB_POSTER_BASE_URL}${data.poster_path}` : null,
         original_language: data.original_language,
         release_date: data.first_air_date,
-        vote_average: data.vote_average,
         vote_count: data.vote_count,
         number_of_seasons: data.number_of_seasons,
         number_of_episodes: data.number_of_episodes,
@@ -278,18 +280,6 @@ class ShowModel {
             order: member.order
           })) : [],
 
-        // Crew
-        crew: data.credits && data.credits.crew
-          ? data.credits.crew
-            .filter(member => member.job === 'Director' || member.job === 'Screenplay' || member.job === 'Writer')
-            .map(member => ({
-              id: member.id,
-              name: member.name,
-              job: member.job,
-              profile_path: member.profile_path ? `${TMDB.TMDB_PROFILE_BASE_URL}${member.profile_path}` : null,
-              department: member.department
-            })) : [],
-
         // Similar
         similar: data.similar && data.similar.results
           ? data.similar.results.map(show => ({
@@ -301,16 +291,6 @@ class ShowModel {
             vote_average: show.vote_average,
             vote_count: show.vote_count
           })) : [],
-
-        // Reviews
-        reviews: data.reviews && data.reviews.results
-          ? data.reviews.results.map(review => ({
-            id: review.id,
-            author: review.author,
-            content: review.content,
-            created_at: review.created_at,
-            rating: review.author_details?.rating
-          })) : []
       };
 
       return formattedShow;

@@ -7,6 +7,7 @@ router.get('/', APIKeyMiddleware, AnimeController.getAnime);
 router.get('/random', APIKeyMiddleware, AnimeController.getRandomAnime);
 router.get('/details/:id', APIKeyMiddleware, AnimeController.getDetails);
 router.get('/episodes/:id', APIKeyMiddleware, AnimeController.getEpisodes);
+router.get('/episodes/:id/:episode', APIKeyMiddleware, AnimeController.getAnimeEpisodeById);
 router.get('/recommendations/:id', APIKeyMiddleware, AnimeController.getRecommendations);
 router.get('/streaming/:id/:episode', APIKeyMiddleware, AnimeController.getStreaming);
 

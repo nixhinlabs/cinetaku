@@ -7,6 +7,6 @@ router.get('/', APIKeyMiddleware, MangaController.getManga);
 router.get('/random', APIKeyMiddleware, MangaController.getRandomManga);
 router.get('/details/:id', APIKeyMiddleware, MangaController.getMangaDetails);
 router.get('/cover/:id', APIKeyMiddleware, MangaController.getMangaCover);
-router.get('/image-proxy', APIKeyMiddleware, MangaController.getImageProxy);
+router.get('/image-proxy', MangaController.getImageProxy);
 
 module.exports = router;

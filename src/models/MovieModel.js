@@ -161,15 +161,17 @@ class MovieModel {
       const formattedMovie = {
         id: data.id,
         title: data.title,
-        overview: data.overview,
+        image: { uri: data.poster_path ? `${TMDB.TMDB_POSTER_BASE_URL}${data.poster_path}` : null },
+        rating: data.vote_average,
+        description: data.overview,
+        type: "Movie",
         backdrop_path: data.backdrop_path ? `${TMDB.TMDB_BACKDROP_BASE_URL}${data.backdrop_path}` : null,
-        poster_path: data.poster_path ? `${TMDB.TMDB_POSTER_BASE_URL}${data.poster_path}` : null,
         original_language: data.original_language,
+        year: data.release_date ? new Date(data.release_date).getFullYear() : null,
         release_date: data.release_date,
         budget: data.budget,
         revenue: data.revenue,
         runtime: data.runtime,
-        vote_average: data.vote_average,
         vote_count: data.vote_count,
         
         // Trailers
@@ -188,20 +190,9 @@ class MovieModel {
             id: member.id,
             name: member.name,
             character: member.character,
+            known_for_department: member.known_for_department,
             profile_path: member.profile_path ? `${TMDB.TMDB_PROFILE_BASE_URL}${member.profile_path}` : null,
             order: member.order
-        })) : [],
-        
-        // Crew
-        crew: data.credits && data.credits.crew
-          ? data.credits.crew
-            .filter(member => member.job === 'Director' || member.job === 'Screenplay' || member.job === 'Writer')
-            .map(member => ({
-              id: member.id,
-              name: member.name,
-              job: member.job,
-              profile_path: member.profile_path ? `${TMDB.TMDB_PROFILE_BASE_URL}${member.profile_path}` : null,
-              department: member.department
         })) : [],
         
         // Similar movies
@@ -215,16 +206,6 @@ class MovieModel {
             vote_average: similarMovie.vote_average,
             vote_count: similarMovie.vote_count
         })) : [],
-        
-        // Reviews
-        reviews: data.reviews && data.reviews.results
-          ? data.reviews.results.map(review => ({
-            id: review.id,
-            author: review.author,
-            content: review.content,
-            created_at: review.created_at,
-            rating: review.author_details?.rating
-        })) : []
       };
       
       return formattedMovie;

@@ -15,26 +15,60 @@ class PersonModel {
 
       const formattedPerson = {
         id: data.id,
-        name: data.name,
+        title: data.name,
+        image: { uri: data.profile_path ? `${TMDB.TMDB_PROFILE_BASE_URL}${data.profile_path}` : null },
+        rating: null,
+        year: data.birthday ? new Date(data.birthday).getFullYear() : null,
+        description: data.biography,
         also_known_as: data.also_known_as,
-        biography: data.biography,
+        type: "Person",
         birthday: data.birthday,
         deathday: data.deathday,
         known_for_department: data.known_for_department,
         place_of_birth: data.place_of_birth,
-        profile_path: data.profile_path ? `${TMDB.TMDB_PROFILE_BASE_URL}${data.profile_path}` : null,
         known_for: {
-          cast: data.combined_credits.cast.map(item => ({
-            id: item.id,
-            media_type: item.media_type,
-            title: item.title || item.name,
-            backdrop_path: item.backdrop_path ? `${TMDB.TMDB_BACKDROP_BASE_URL}${item.backdrop_path}` : null,
-            poster_path: item.poster_path ? `${TMDB.TMDB_POSTER_BASE_URL}${item.poster_path}` : null,
-            release_date: item.release_date || item.first_air_date,
-            vote_average: item.vote_average,
-            vote_count: item.vote_count,
-            character: item.character
-          }))
+          // Acting roles
+          cast: data.combined_credits.cast.map(item => {
+            const mediaMap = { movie: 'Movie', tv: 'TV Show', person: 'Person', anime: 'Anime', manhwa: 'Manhwa' };
+            const releaseDate = item.release_date ?? item.first_air_date;
+
+            return {
+              id: item.id,
+              type: mediaMap[item.media_type] ?? item.media_type,
+              title: item.title ?? item.name,
+              image: { uri: item.poster_path ? `${TMDB.TMDB_POSTER_BASE_URL}${item.poster_path}` : null },
+              rating: item.vote_average,
+              year: releaseDate ? new Date(releaseDate).getFullYear() : null,
+              description: null,
+              backdrop_path: item.backdrop_path ? `${TMDB.TMDB_BACKDROP_BASE_URL}${item.backdrop_path}` : null,
+              release_date: releaseDate,
+              vote_count: item.vote_count,
+              character: item.character,
+              role_type: "Actor",
+              job: item.character
+            };
+          }),
+          // Crew roles (director, writer, producer, etc.)
+          crew: data.combined_credits.crew.map(item => {
+            const mediaMap = { movie: 'Movie', tv: 'TV Show', person: 'Person', anime: 'Anime', manhwa: 'Manhwa' };
+            const releaseDate = item.release_date ?? item.first_air_date;
+
+            return {
+              id: item.id,
+              type: mediaMap[item.media_type] ?? item.media_type,
+              title: item.title ?? item.name,
+              image: { uri: item.poster_path ? `${TMDB.TMDB_POSTER_BASE_URL}${item.poster_path}` : null },
+              rating: item.vote_average,
+              year: releaseDate ? new Date(releaseDate).getFullYear() : null,
+              description: null,
+              backdrop_path: item.backdrop_path ? `${TMDB.TMDB_BACKDROP_BASE_URL}${item.backdrop_path}` : null,
+              release_date: releaseDate,
+              vote_count: item.vote_count,
+              role_type: "Crew",
+              job: item.job,
+              department: item.department
+            };
+          })
         }
       };
 

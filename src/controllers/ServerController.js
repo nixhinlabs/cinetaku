@@ -14,7 +14,7 @@ class ServerController {
         id: "CINE-002", 
         name: "Cine King", 
         url: "https://vidking.net/embed",
-        isActive: false,
+        isActive: true,
         description: "Premium streaming server with extensive content library. Features high-quality playback, minimal buffering, and excellent compatibility with all devices.",
         tags: ["Premium", "All Devices", "HD Quality", "Minimal Ads"],
         needsExternalBrowser: false
@@ -23,7 +23,7 @@ class ServerController {
         id: "CINE-003", 
         name: "Cine Anime", 
         url: "https://player.videasy.net",
-        isActive: false,
+        isActive: true,
         description: "Best for Anime & Asian Dramas - Smooth playback with minimal buffering. Specialized in anime content and Asian entertainment.",
         tags: ["Anime", "Asian Dramas", "Sub/Dub", "Minimal Ads"],
         needsExternalBrowser: false
@@ -32,7 +32,7 @@ class ServerController {
         id: "CINE-004", 
         name: "Cine Pro", 
         url: "https://vidlink.pro",
-        isActive: false,
+        isActive: true,
         description: "Huge library of movies and TV shows. Fast streaming with a customizable video player.",
         tags: ["Huge Library", "Fast", "Customizable", "Classic Movies"],
         needsExternalBrowser: false

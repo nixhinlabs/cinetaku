@@ -108,34 +108,25 @@ class MangaController {
   async getImageProxy(req, res) {
     try {
       const { url } = req.query;
-      
       if (!url) {
-        return res.status(STATUS.BAD_REQUEST).json({
-          success: false,
-          message: "URL is required"
-        });
+        return res.status(400).json({ error: 'URL is required' });
       }
 
-      const response = await axios({
-        method: 'GET',
-        url: decodeURIComponent(url),
+      const response = await axios.get(url, {
         responseType: 'stream',
         headers: {
           'User-Agent': 'MangaDexApp/1.0',
-          'Referer': GENERAL.BASE_PRODUCTION_URL
+          'Referer': 'https://mangadex.org/'
         }
       });
 
       res.setHeader('Content-Type', response.headers['content-type']);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
       res.setHeader('Access-Control-Allow-Origin', '*');
       
       response.data.pipe(res);
-      
     } catch (error) {
-      res.status(STATUS.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: "Failed to fetch image"
-      });
+      res.status(500).json({ error: 'Failed to fetch image' });
     }
   }
 };

@@ -150,7 +150,6 @@ class MangaModel {
         };
 
       } catch (error) {
-        console.error('Error fetching random manga:', error.message);
         return {
           success: false,
           error: error.message,
@@ -197,9 +196,29 @@ class MangaModel {
           coverFileName = coverRelation.attributes.fileName;
         }
 
-        const titleEn = manga.attributes.title?.en || 
-                      Object.values(manga.attributes.title || {})[0] || 
-                      'Untitled';
+        const getTitle = (manga) => {
+          const titles = manga.attributes.title;
+          return titles.en || titles['ja-ro'] || titles.ja || Object.values(titles)[0] || 'Untitled';
+        };
+
+        const getDescription = (manga) => {
+          const desc = manga.attributes.description;
+          if (!desc) return 'No description available';
+          
+          let descriptionText = desc.en || desc.ja || 'No description available';
+          descriptionText = descriptionText.replace(/<[^>]*>/g, '');
+          if (descriptionText.length > 500) {
+            descriptionText = descriptionText.substring(0, 500) + '...';
+          }
+          return descriptionText;
+        };
+
+        const getCoverUrl = () => {
+          if (coverFileName) {
+            return `${this.coverUrl}/covers/${manga.id}/${coverFileName}`;
+          }
+          return null;
+        };
 
         const chapters = chaptersRes.data.data.map(chapter => {
           const scanGroupRelation = chapter.relationships.find(rel => rel.type === 'scanlation_group');
@@ -220,18 +239,19 @@ class MangaModel {
           success: true,
           data: {
             id: manga.id,
-            title: titleEn,
+            title: getTitle(manga),
+            image: { uri: getCoverUrl() },
             altTitles: manga.attributes.altTitles || [],
-            description: manga.attributes.description?.en || 
-                        manga.attributes.description?.ja || 
-                        'No description available',
+            description: getDescription(manga),
             status: manga.attributes.status,
             year: manga.attributes.year,
+            rating: null,
+            type: "Manhwa",
             contentRating: manga.attributes.contentRating,
             tags: manga.attributes.tags?.map(tag => 
               tag.attributes.name?.en || Object.values(tag.attributes.name || {})[0]
             ) || [],
-            coverArt: coverFileName ? `${this.coverUrl}/covers/${manga.id}/${coverFileName}` : null,
+            coverArt: getCoverUrl(),
             author: authorRelation?.attributes?.name || 'Unknown',
             artist: artistRelation?.attributes?.name || 'Unknown',
             createdAt: manga.attributes.createdAt,
@@ -248,7 +268,6 @@ class MangaModel {
         };
 
       } catch (error) {
-        console.error('Error fetching manga details:', error.message);
         return {
           success: false,
           error: error.message,
@@ -296,7 +315,6 @@ class MangaModel {
         };
 
       } catch (error) {
-        console.error('Error fetching chapter images:', error.message);
         return {
           success: false,
           error: error.message,
@@ -376,7 +394,6 @@ class MangaModel {
         };
 
       } catch (error) {
-        console.error('Error searching manga:', error.message);
         return {
           success: false,
           error: error.message,
