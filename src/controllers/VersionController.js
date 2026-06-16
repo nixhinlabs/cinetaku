@@ -3,7 +3,7 @@ class VersionController {
     return res.json({
       success: true,
       data: {
-        latest_version: "1.0.0",
+        latest_version: "1.0.1",
         download_url: "https://cinetaku.netlify.app/download",
         update_message: "Welcome to Cinetaku! Stream movies, TV shows, anime, and read manhwa all in one app.",
         release_date: "2026-06-11",
