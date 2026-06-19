@@ -13,6 +13,7 @@ app.use(express.json());
 const VersionRoutes = require('./src/routes/VersionRoutes');
 const ServerRoutes = require('./src/routes/ServerRoutes');
 const SearchRoutes = require('./src/routes/SearchRoutes');
+const DeviceRoutes = require('./src/routes/DeviceRoutes');
 
 // Movies
 const MovieRoutes = require('./src/routes/MovieRoutes');
@@ -32,6 +33,7 @@ const MangaRoutes = require('./src/routes/MangaRoutes');
 app.use('/api', VersionRoutes);
 app.use('/api', ServerRoutes);
 app.use('/api/search', SearchRoutes);
+app.use('/api/device', DeviceRoutes);
 app.use('/api/movie', MovieRoutes);
 app.use('/api/show', ShowRoutes);
 app.use('/api/person', PersonRoutes);
