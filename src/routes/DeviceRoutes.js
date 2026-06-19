@@ -5,6 +5,6 @@ const APIKeyMiddleware = require('../middlewares/APIKeyMiddleware');
 
 router.post('/', APIKeyMiddleware, DeviceController.create);
 router.get('/info/:androidId', APIKeyMiddleware, DeviceController.getByAndroidId);
-router.get('/all', APIKeyMiddleware, DeviceController.getTotal)
+router.get('/all', DeviceController.getTotal)
 
 module.exports = router;
