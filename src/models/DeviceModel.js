@@ -110,7 +110,8 @@ class DeviceModel {
           success: true,
           message: 'Total devices retrieved successfully',
           data: {
-            total: total
+            total: total,
+            average_rating: 5.0
           }
         };
       });
