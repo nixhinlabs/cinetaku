@@ -14,6 +14,7 @@ const VersionRoutes = require('./src/routes/VersionRoutes');
 const ServerRoutes = require('./src/routes/ServerRoutes');
 const SearchRoutes = require('./src/routes/SearchRoutes');
 const DeviceRoutes = require('./src/routes/DeviceRoutes');
+const ReviewRoutes = require('./src/routes/ReviewRoutes');
 
 // Movies
 const MovieRoutes = require('./src/routes/MovieRoutes');
@@ -34,6 +35,7 @@ app.use('/api', VersionRoutes);
 app.use('/api', ServerRoutes);
 app.use('/api/search', SearchRoutes);
 app.use('/api/device', DeviceRoutes);
+app.use('/api/reviews', ReviewRoutes);
 app.use('/api/movie', MovieRoutes);
 app.use('/api/show', ShowRoutes);
 app.use('/api/person', PersonRoutes);
