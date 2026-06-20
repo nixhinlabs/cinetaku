@@ -25,7 +25,7 @@ class ReviewController {
           brand: "OPPO",
           deviceName: "Reno 11",
           modelName: "CPH2599",
-          stars: 4,
+          stars: 5,
           message: "Gustong gusto ko yung Movies at TV Shows section. Complete yung mga series na pinapanood ko. Sana madagdagan pa ng more Filipino content. Solid app!"
         },
         {
@@ -41,7 +41,7 @@ class ReviewController {
           brand: "Vivo",
           deviceName: "Vivo V30",
           modelName: "V2337",
-          stars: 4,
+          stars: 5,
           message: "Ang ganda ng app design! Premium yung dating kahit free. Madali i-navigate yung categories, from Anime to Manhwa. Sana magkaroon ng light mode. Keep it up!"
         }
       ];
