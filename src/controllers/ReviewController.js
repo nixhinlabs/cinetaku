@@ -46,7 +46,7 @@ class ReviewController {
         }
       ];
 
-      return res.status(STATUS.OK).json({
+      return res.status(STATUS.SUCCESS).json({
         success: true,
         data: reviews,
         count: reviews.length,
