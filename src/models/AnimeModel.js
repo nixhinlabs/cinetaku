@@ -4,211 +4,33 @@ const { ANIME } = require('../config/constants');
 
 class AnimeModel {
   constructor() {
-    this.anilistUrl = 'https://graphql.anilist.co';
-    this.jikanUrl = ANIME.ANIME_API_BASE_URL;
-    this.lastRequestTime = 0;
-    this.minDelay = 200;
-  }
-
-  async _delayIfNeeded() {
-    const now = Date.now();
-    const timeSinceLastRequest = now - this.lastRequestTime;
-    if (timeSinceLastRequest < this.minDelay) {
-      await new Promise(resolve => 
-        setTimeout(resolve, this.minDelay - timeSinceLastRequest)
-      );
-    }
-    this.lastRequestTime = Date.now();
-  }
-
-  async _graphqlRequest(query, variables = {}) {
-    await this._delayIfNeeded();
-    
-    try {
-      const response = await axios.post(this.anilistUrl, {
-        query,
-        variables
-      }, {
-        timeout: 15000,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      if (response.data.errors) {
-        throw new Error(response.data.errors[0].message);
-      }
-
-      return response.data;
-    } catch (error) {
-      console.error('GraphQL request failed:', error.message);
-      throw error;
-    }
-  }
-
-  async _fetchFromAniList(limit = 10, filters = {}) {
-    const query = `
-      query($limit: Int, $search: String, $id: Int, $genre: String) {
-        Page(perPage: $limit) {
-          media(
-            ${filters.id ? `id: $id` : ''}
-            ${filters.search ? `search: $search` : ''}
-            sort: ${filters.sort || 'SCORE_DESC'}
-            type: ANIME
-            status_not: NOT_YET_RELEASED
-            ${filters.genre ? `genre: $genre` : ''}
-          ) {
-            id
-            title {
-              romaji
-              english
-              native
-            }
-            coverImage {
-              large
-              extraLarge
-            }
-            bannerImage
-            averageScore
-            startDate {
-              year
-              month
-              day
-            }
-            endDate {
-              year
-              month
-              day
-            }
-            description
-            status
-            episodes
-            duration
-            genres
-            studios {
-              edges {
-                node {
-                  name
-                }
-                isMain
-              }
-            }
-            trailer {
-              site
-              id
-              thumbnail
-            }
-            rankings {
-              rank
-              type
-              allTime
-            }
-            staff {
-              edges {
-                node {
-                  name {
-                    full
-                  }
-                }
-                role
-              }
-            }
-            characters {
-              edges {
-                node {
-                  name {
-                    full
-                  }
-                }
-              }
-            }
-            relations {
-              edges {
-                relationType
-                node {
-                  id
-                  title {
-                    romaji
-                    english
-                  }
-                  type
-                }
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    const variables = {
-      limit: Math.min(limit, 50),
-      ...filters
-    };
-
-    const response = await this._graphqlRequest(query, variables);
-    return response.data.Page.media;
-  }
-
-  async _formatAniListData(anime) {
-    return {
-      id: anime.id,
-      title: anime.title.english || anime.title.romaji || anime.title.native,
-      title_english: anime.title.english,
-      title_japanese: anime.title.native,
-      type: "Anime",
-      image: {
-        uri: anime.coverImage?.extraLarge || anime.coverImage?.large,
-        small: anime.coverImage?.large,
-        medium: anime.coverImage?.large
-      },
-      banner: anime.bannerImage,
-      rating: anime.averageScore ? anime.averageScore / 10 : null,
-      year: anime.startDate?.year,
-      description: anime.description ? anime.description.replace(/<[^>]*>/g, '') : '',
-      status: anime.status,
-      episodes: anime.episodes,
-      duration: anime.duration,
-      genres: anime.genres || [],
-      studios: anime.studios?.edges?.filter(e => e.isMain).map(e => e.node.name) || [],
-      trailer: anime.trailer?.id ? `https://www.youtube.com/watch?v=${anime.trailer.id}` : null,
-      rank: anime.rankings?.find(r => r.allTime)?.rank || null,
-      staff: anime.staff?.edges?.map(e => ({
-        name: e.node.name.full,
-        role: e.role
-      })) || [],
-      characters: anime.characters?.edges?.map(e => e.node.name.full) || [],
-      relations: anime.relations?.edges?.map(e => ({
-        relation: e.relationType,
-        entries: [{
-          id: e.node.id,
-          title: e.node.title.english || e.node.title.romaji,
-          type: e.node.type
-        }]
-      })) || []
-    };
+    this.baseUrl = ANIME.ANIME_API_BASE_URL;
   }
 
   async getAnime(limit = 10) {
     const cacheKey = `anime_data:${limit}`;
     
     return CacheService.getOrSet(cacheKey, async () => {
-      const media = await this._fetchFromAniList(limit);
-      const filteredData = media.map(anime => ({
-        id: anime.id,
-        title: anime.title.english || anime.title.romaji || anime.title.native,
-        image: { uri: anime.coverImage?.extraLarge || anime.coverImage?.large },
-        rating: anime.averageScore ? anime.averageScore / 10 : null,
-        year: anime.startDate?.year,
-        description: anime.description ? anime.description.replace(/<[^>]*>/g, '') : '',
+      const params = {
+        order_by: 'score',
+        sort: 'desc',
+        limit: Math.min(limit, 100),
+      };
+      const response = await axios.get(`${this.baseUrl}/anime/20/full`, { params });
+
+      const filteredData = response.data.data.map(anime => ({
+        id: anime.mal_id,
+        title: anime.title,
+        image: { uri: anime.images.jpg.image_url },
+        rating: anime.score,
+        year: anime.aired.from ? new Date(anime.aired.from).getFullYear() : null,
+        description: anime.synopsis,
         type: "Anime"
       }));
 
       return {
         success: true,
-        data: filteredData,
-        source: 'anilist'
+        data: filteredData
       };
     });
   }
@@ -217,81 +39,53 @@ class AnimeModel {
     const cacheKey = 'anime_random_data';
     
     return CacheService.getOrSet(cacheKey, async () => {
-      // Get a random page
-      const randomPage = Math.floor(Math.random() * 100) + 1;
-      const query = `
-        query($page: Int) {
-          Page(perPage: 1, page: $page) {
-            media(type: ANIME, status_not: NOT_YET_RELEASED) {
-              id
-              title {
-                romaji
-                english
-                native
-              }
-              coverImage {
-                extraLarge
-                large
-              }
-              averageScore
-              startDate { year }
-              description
-              status
-              episodes
-              genres
-            }
-          }
-        }
-      `;
-
-      const response = await this._graphqlRequest(query, { page: randomPage });
-      const anime = response.data.Page.media[0];
-
-      if (!anime) {
-        throw new Error('No random anime found');
-      }
-
+      const response = await axios.get(`${this.baseUrl}/random/anime`);
+      
+      const anime = response.data.data;
+      
       const filteredData = {
-        id: anime.id,
-        title: anime.title.english || anime.title.romaji || anime.title.native,
-        image: { uri: anime.coverImage?.extraLarge || anime.coverImage?.large },
-        rating: anime.averageScore ? anime.averageScore / 10 : null,
-        year: anime.startDate?.year,
-        description: anime.description ? anime.description.replace(/<[^>]*>/g, '') : '',
+        id: anime.mal_id,
+        title: anime.title,
+        image: { uri: anime.images.jpg.image_url },
+        rating: anime.score,
+        year: anime.aired.from ? new Date(anime.aired.from).getFullYear() : null,
+        description: anime.synopsis,
         type: "Anime"
       };
 
       return {
         success: true,
-        data: filteredData,
-        source: 'anilist'
+        data: filteredData
       };
     });
   }
 
-  async searchAnime(query, orderBy = 'SCORE_DESC', sort = 'desc', limit = 10) {
+  async searchAnime(query, orderBy = 'score', sort = 'desc', limit = 10) {
     const cacheKey = `search_anime:${query}:${orderBy}:${sort}:${limit}`;
     
     return CacheService.getOrSet(cacheKey, async () => {
-      const media = await this._fetchFromAniList(limit, { 
-        search: query,
-        sort: orderBy
-      });
+      const params = {
+        q: query,
+        order_by: orderBy,
+        sort: sort,
+        limit: limit
+      };
+      
+      const response = await axios.get(`${this.baseUrl}/anime`, { params });
 
-      const filteredData = media.map(anime => ({
-        id: anime.id,
-        title: anime.title.english || anime.title.romaji || anime.title.native,
-        image: { uri: anime.coverImage?.extraLarge || anime.coverImage?.large },
-        rating: anime.averageScore ? anime.averageScore / 10 : null,
-        year: anime.startDate?.year,
-        description: anime.description ? anime.description.replace(/<[^>]*>/g, '') : '',
+      const filteredData = response.data.data.map(anime => ({
+        id: anime.mal_id,
+        title: anime.title,
+        image: { uri: anime.images.jpg.image_url },
+        rating: anime.score,
+        year: anime.aired.from ? new Date(anime.aired.from).getFullYear() : null,
+        description: anime.synopsis,
         type: "Anime"
       }));
 
       return {
         success: true,
-        data: filteredData,
-        source: 'anilist'
+        data: filteredData
       };
     });
   }
@@ -300,22 +94,61 @@ class AnimeModel {
     const cacheKey = `anime_details:${id}`;
     
     return CacheService.getOrSet(cacheKey, async () => {
-      const media = await this._fetchFromAniList(1, { id: parseInt(id) });
+      const response = await axios.get(`${this.baseUrl}/anime/${id}/full`);
+      const data = response.data.data;
       
-      if (!media || media.length === 0) {
-        return {
-          success: false,
-          data: null,
-          message: `Anime with ID ${id} not found`
-        };
-      }
-
-      const formattedData = await this._formatAniListData(media[0]);
-
+      const formattedData = {
+        id: data.mal_id,
+        title: data.title,
+        title_english: data.title_english,
+        title_japanese: data.title_japanese,
+        type: "Anime",
+        image: {
+          uri: data.images.jpg.large_image_url,
+          small: data.images.jpg.small_image_url,
+          medium: data.images.jpg.image_url
+        },
+        rating: data.score,
+        year: data.year,
+        description: data.synopsis,
+        status: data.status,
+        episodes: data.episodes,
+        duration: data.duration,
+        age_rating: data.rating,
+        aired_from: data.aired.from,
+        aired_to: data.aired.to,
+        aired_string: data.aired.string,
+        season: data.season,
+        source: data.source,
+        background: data.background,
+        rank: data.rank,
+        popularity: data.popularity,
+        favorites: data.favorites,
+        members: data.members,
+        scored_by: data.scored_by,
+        genres: data.genres.map(g => g.name),
+        themes: data.themes.map(t => t.name),
+        demographics: data.demographics.map(d => d.name),
+        producers: data.producers.map(p => p.name),
+        licensors: data.licensors.map(l => l.name),
+        studios: data.studios.map(s => s.name),
+        openings: data.theme.openings,
+        endings: data.theme.endings,
+        trailer: data.trailer.embed_url || data.trailer.url,
+        relations: data.relations.map(rel => ({
+          relation: rel.relation,
+          entries: rel.entry.map(entry => ({
+            id: entry.mal_id,
+            title: entry.name,
+            type: entry.type,
+            url: entry.url
+          }))
+        }))
+      };
+      
       return {
         success: true,
-        data: formattedData,
-        source: 'anilist'
+        data: formattedData
       };
     });
   }
@@ -324,77 +157,27 @@ class AnimeModel {
     const cacheKey = `anime_episodes:${id}:page:${page}:limit:${limit}`;
     
     return CacheService.getOrSet(cacheKey, async () => {
-      const query = `
-        query($id: Int, $page: Int, $perPage: Int) {
-          Media(id: $id, type: ANIME) {
-            id
-            title {
-              romaji
-              english
-            }
-            episodes
-            streamingEpisodes {
-              title
-              thumbnail
-              url
-              site
-            }
-            airingSchedule(perPage: $perPage, page: $page) {
-              nodes {
-                episode
-                airingAt
-                timeUntilAiring
-              }
-              pageInfo {
-                total
-                perPage
-                currentPage
-                lastPage
-                hasNextPage
-              }
-            }
-          }
-        }
-      `;
+      const params = {
+        page: page,
+        limit: limit
+      };
+      
+      const response = await axios.get(`${this.baseUrl}/anime/${id}/episodes`, { params });
 
-      const response = await this._graphqlRequest(query, {
-        id: parseInt(id),
-        page: parseInt(page),
-        perPage: Math.min(parseInt(limit), 50)
-      });
-
-      const anime = response.data.Media;
-      if (!anime) {
-        return {
-          success: false,
-          data: [],
-          message: `Anime with ID ${id} not found`
-        };
-      }
-
-      const episodes = anime.airingSchedule?.nodes?.map(node => ({
-        id: node.episode,
-        title: `Episode ${node.episode}`,
-        episode_number: node.episode,
-        airing_at: node.airingAt,
-        time_until_airing: node.timeUntilAiring,
-        streaming: anime.streamingEpisodes?.find(s => s.title?.includes(`Episode ${node.episode}`))
-      })) || [];
+      const filteredData = response.data.data.map(anime => ({
+        id: anime.mal_id,
+        title: anime.title,
+        image: { uri: null },
+        rating: anime.score,
+        year: anime.aired.from ? new Date(anime.aired.from).getFullYear() : null,
+        description: anime.title_romanji,
+        type: "Anime"
+      }));
 
       return {
         success: true,
-        data: episodes,
-        pagination: {
-          current_page: anime.airingSchedule?.pageInfo?.currentPage || page,
-          last_visible_page: anime.airingSchedule?.pageInfo?.lastPage || 1,
-          has_next_page: anime.airingSchedule?.pageInfo?.hasNextPage || false,
-          items: {
-            count: episodes.length,
-            total: anime.episodes || episodes.length,
-            per_page: limit
-          }
-        },
-        source: 'anilist'
+        data: filteredData,
+        pagination: response.data.pagination
       };
     });
   }
@@ -403,65 +186,34 @@ class AnimeModel {
     const cacheKey = `anime_episode:${id}:episode:${episode}`;
     
     return CacheService.getOrSet(cacheKey, async () => {
-      const query = `
-        query($id: Int) {
-          Media(id: $id, type: ANIME) {
-            id
-            title {
-              romaji
-              english
-            }
-            streamingEpisodes {
-              title
-              thumbnail
-              url
-              site
-            }
-          }
-        }
-      `;
-
-      const response = await this._graphqlRequest(query, {
-        id: parseInt(id)
-      });
-
-      const anime = response.data.Media;
-      if (!anime) {
+      try {
+        const response = await axios.get(`${this.baseUrl}/anime/${id}/episodes/${episode}`);
+        const anime = response.data.data;
+        
+        const filteredData = {
+          id: anime.mal_id,
+          title: anime.title,
+          image: { uri: null },
+          rating: anime.score || null,
+          year: anime.aired ? new Date(anime.aired).getFullYear() : null,
+          description: anime.title_romanji || anime.synopsis,
+          type: "Anime",
+          episode_number: episode
+        };
+        
+        return {
+          success: true,
+          data: filteredData
+        };
+        
+      } catch (error) {
+        console.error(`Error fetching episode ${episode} for anime ${id}:`, error.message);
         return {
           success: false,
-          data: null,
-          message: `Anime with ID ${id} not found`
+          error: error.message,
+          data: null
         };
       }
-
-      const streamingEpisode = anime.streamingEpisodes?.find(
-        s => s.title?.includes(`Episode ${episode}`) || s.title?.includes(`Ep. ${episode}`)
-      );
-
-      if (!streamingEpisode) {
-        return {
-          success: false,
-          data: null,
-          message: `Episode ${episode} not found for anime ID: ${id}`
-        };
-      }
-
-      const filteredData = {
-        id: anime.id,
-        title: anime.title.english || anime.title.romaji,
-        episode_number: parseInt(episode),
-        image: { uri: streamingEpisode?.thumbnail || null },
-        description: streamingEpisode?.title || `Episode ${episode}`,
-        streaming_url: streamingEpisode?.url || null,
-        streaming_site: streamingEpisode?.site || null,
-        type: "Anime"
-      };
-
-      return {
-        success: true,
-        data: filteredData,
-        source: 'anilist'
-      };
     });
   }
 
@@ -469,66 +221,13 @@ class AnimeModel {
     const cacheKey = `anime_recommendations:${id}:${limit}`;
     
     return CacheService.getOrSet(cacheKey, async () => {
-      const query = `
-        query($id: Int, $limit: Int) {
-          Media(id: $id, type: ANIME) {
-            id
-            title {
-              romaji
-              english
-            }
-            recommendations(perPage: $limit) {
-              nodes {
-                mediaRecommendation {
-                  id
-                  title {
-                    romaji
-                    english
-                  }
-                  coverImage {
-                    large
-                  }
-                  averageScore
-                  startDate { year }
-                  genres
-                  type
-                }
-              }
-            }
-          }
-        }
-      `;
-
-      const response = await this._graphqlRequest(query, {
-        id: parseInt(id),
-        limit: Math.min(parseInt(limit), 50)
-      });
-
-      const anime = response.data.Media;
-      if (!anime) {
-        return {
-          success: false,
-          data: [],
-          message: `Anime with ID ${id} not found`
-        };
+      const response = await axios.get(`${this.baseUrl}/anime/${id}/recommendations`);
+      
+      if (response.data.data && limit) {
+        response.data.data = response.data.data.slice(0, limit);
       }
-
-      const recommendations = anime.recommendations?.nodes?.map(node => ({
-        id: node.mediaRecommendation.id,
-        title: node.mediaRecommendation.title.english || node.mediaRecommendation.title.romaji,
-        image: { uri: node.mediaRecommendation.coverImage?.large },
-        rating: node.mediaRecommendation.averageScore ? node.mediaRecommendation.averageScore / 10 : null,
-        year: node.mediaRecommendation.startDate?.year,
-        genres: node.mediaRecommendation.genres || [],
-        type: node.mediaRecommendation.type
-      })) || [];
-
-      return {
-        success: true,
-        data: recommendations,
-        count: recommendations.length,
-        source: 'anilist'
-      };
+      
+      return response.data;
     });
   }
 }
