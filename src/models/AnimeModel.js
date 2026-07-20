@@ -16,7 +16,7 @@ class AnimeModel {
         sort: 'desc',
         limit: Math.min(limit, 100),
       };
-      const response = await axios.get(`${this.baseUrl}/top/anime`, { params });
+      const response = await axios.get(`${this.baseUrl}/anime`, { params });
 
       const filteredData = response.data.data.map(anime => ({
         id: anime.mal_id,
